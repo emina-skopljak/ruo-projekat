@@ -1,0 +1,37 @@
+# nginx konfiguracija kao template.
+# Slika nginx:alpine pri startu kontejnera izvrsava envsubst nad fajlovima iz
+# /etc/nginx/templates/*.template i rezultat upisuje u /etc/nginx/conf.d/.
+# Tako adresa backend-a dolazi iz okruzenja (BACKEND_URL), a nikad nije
+# hardkodirana u kodu. U Docker Compose-u je to ime servisa, a u VM-u DNS ime
+# iz BIND zone projekta.
+
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Liveness/readiness za testove i healthcheck (AO-2, tests/)
+    location = /healthz {
+        access_log off;
+        add_header Content-Type text/plain always;
+        return 200 "ok\n";
+    }
+
+    # Frontend ne komunicira s bazom. Njegov jedini izlaz je backend.
+    location /api/ {
+        proxy_pass ${BACKEND_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

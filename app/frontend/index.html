@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RuO — evidencija zadataka</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 3rem 1rem;
+    }
+    main { width: 100%; max-width: 42rem; }
+    h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+    p.sub { margin: 0 0 2rem; color: #94a3b8; font-size: .9rem; }
+    form { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+    input[type="text"] {
+      flex: 1; padding: .75rem 1rem; border-radius: .5rem;
+      border: 1px solid #334155; background: #1e293b; color: inherit; font-size: 1rem;
+    }
+    input[type="text"]:focus { outline: 2px solid #38bdf8; outline-offset: -1px; }
+    button {
+      padding: .75rem 1.25rem; border: 0; border-radius: .5rem;
+      background: #38bdf8; color: #0f172a; font-weight: 600; font-size: 1rem; cursor: pointer;
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+    li {
+      display: flex; justify-content: space-between; gap: 1rem;
+      padding: .75rem 1rem; border-radius: .5rem;
+      background: #1e293b; border: 1px solid #334155;
+    }
+    li span.time { color: #64748b; font-size: .8rem; white-space: nowrap; }
+    .status { font-size: .85rem; color: #94a3b8; min-height: 1.2rem; margin-bottom: 1rem; }
+    .status.error { color: #f87171; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Evidencija zadataka</h1>
+    <p class="sub">Frontend (nginx) &rarr; backend (FastAPI) &rarr; baza (PostgreSQL)</p>
+
+    <div id="status" class="status">Učitavanje...</div>
+
+    <form id="note-form">
+      <input id="note-input" type="text" placeholder="Novi zadatak..." autocomplete="off" maxlength="200" />
+      <button id="note-submit" type="submit">Dodaj</button>
+    </form>
+
+    <ul id="notes"></ul>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

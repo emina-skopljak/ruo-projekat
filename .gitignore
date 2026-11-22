@@ -1,0 +1,44 @@
+# --- tajne (AO-9): nikad u Git ---
+.env
+*.pem
+*.key
+*.crt
+tsig*
+*tsig*
+secrets/
+ansible/vault.yml
+ansible/**/vault.yml
+vault-pass*
+.vault_pass*
+
+# --- Terraform (AO-3): state i lokalni keš ne idu u Git ---
+.terraform/
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
+# --- Ansible ---
+*.retry
+.ansible/
+ansible/inventory.ini
+ansible/inventory/
+
+# --- aplikacija ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+
+# --- editori / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
