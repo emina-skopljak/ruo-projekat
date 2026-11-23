@@ -1,0 +1,31 @@
+# network-config (cloud-init, NoCloud) — netplan v2
+#
+# Ovim se VM-u daje STATICKA adresa (DO-3), a ne DHCP:
+#   - BIND zona mora imati stabilne A zapise (AO-7, AO-8)
+#   - adresa je ista poslije svakog destroy/all ciklusa
+#
+# Interfejs se prepoznaje po MAC adresi (ime u VM-u ne mora biti enp1s0),
+# a zatim se preimenuje u eth0 da bi ime bilo predvidivo.
+#
+# Gateway 192.168.100.1 je libvirt bridge na hostu; isti host je i DNS
+# forwarder dok se ne podigne BIND unutar VM-a.
+
+version: 2
+ethernets:
+  primary:
+    match:
+      macaddress: "${vm_mac}"
+    set-name: eth0
+    dhcp4: false
+    dhcp6: false
+    addresses:
+      - ${vm_ip}/${network_prefix}
+    routes:
+      - to: default
+        via: ${network_gateway}
+        metric: 100
+    nameservers:
+      addresses:
+        - ${network_gateway}
+      search:
+        - ${domain}

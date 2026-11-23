@@ -1,0 +1,16 @@
+# Primjer izmjena parametara (AO-3).
+# Kopiraj u terraform.tfvars samo ako zelis nesto promijeniti.
+# terraform.tfvars NE ide u Git (vidi .gitignore) jer moze sadrzavati lokalne putanje.
+
+# vm_name      = "ruo-app"
+# vcpu         = 2
+# memory_mb    = 2048
+# disk_size_gb = 12
+
+# Provjeri da podmreza ne kolidira s tvojom kucnom mrezom:
+#   ip route | grep 192.168
+# network_cidr = "192.168.100.0/24"
+# vm_ip        = "192.168.100.10"
+
+# admin_user   = "ruo"
+# domain       = "ruo.local"

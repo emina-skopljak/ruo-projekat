@@ -1,0 +1,47 @@
+#cloud-config
+# AO-4: pocetna konfiguracija VM-a. Ovo je JEDINI fajl koji se izvrsi pri
+# prvom podizanju masine. Sve ostalo (Docker, aplikacija, DNS) radi Ansible.
+#
+# Namjerno:
+#   - korisnik za upravljanje se prijavljuje ISKLJUCIVO SSH kljucem
+#   - prijava lozinkom je onemogucena (ssh_pwauth: false + sshd config)
+#   - root login je onemogucen
+#   - nema lozinke u fajlu (lock_passwd: true)
+
+hostname: ${hostname}
+fqdn: ${hostname}.${domain}
+manage_etc_hosts: true
+preserve_hostname: false
+
+users:
+  - name: ${admin_user}
+    gecos: "RuO administrator"
+    groups: [adm, sudo]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+ssh_pwauth: false
+disable_root: true
+
+package_update: false
+package_upgrade: false
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-ruo-hardening.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PubkeyAuthentication yes
+      PermitRootLogin no
+      UsePAM yes
+
+runcmd:
+  # cloud slika ima ssh.service; restart da se primijeni drop-in iz write_files
+  - systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || true
+
+final_message: "cloud-init zavrsen: ${hostname}.${domain} spremna za Ansible"

@@ -1,0 +1,6 @@
+# meta-data za cloud-init (NoCloud seed)
+# instance-id mora biti jedinstven po masini; ako se promijeni, cloud-init
+# ponovo izvrsi konfiguraciju. Zato se vezuje za ime hosta.
+instance-id: ${hostname}
+local-hostname: ${hostname}
+# upravljacka adresa (DHCP rezervacija u libvirt mrezi): ${vm_ip}
