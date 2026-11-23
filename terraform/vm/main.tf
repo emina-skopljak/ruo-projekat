@@ -157,4 +157,10 @@ resource "libvirt_domain" "vm" {
     listen_type = "address"
     autoport    = true
   }
+
+  # host-model se u zivom XML-u normalizuje u mode='custom'; to nije drift
+  # nego normalizacija hipervizora, pa ignorisemo samo taj atribut.
+  lifecycle {
+    ignore_changes = [cpu]
+  }
 }
