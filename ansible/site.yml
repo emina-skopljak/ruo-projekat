@@ -1,0 +1,30 @@
+---
+# Ulazna tocka za konfiguraciju (AO-5).
+#
+# Playbook je idempotentan: drugo izvrsavanje mora dati changed=0.
+# Role se mogu pokretati pojedinacno preko tagova:
+#   ansible-playbook site.yml --tags docker
+#
+# Redoslijed je namjeran: prvo osnova sistema (common), pa Docker.
+# Kasnije se dodaju role dns i app (Faza C i E).
+
+- name: Konfiguracija VM-a
+  hosts: app
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Provjeri da je VM dostupan i da je Ubuntu
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+        fail_msg: "Ova uloga je pisana za Ubuntu, a VM je {{ ansible_distribution }}."
+        success_msg: "VM: {{ ansible_distribution }} {{ ansible_distribution_release }} ({{ ansible_architecture }})"
+      tags: [always]
+
+  roles:
+    - role: common
+      tags: [common]
+
+    - role: docker
+      tags: [docker]

@@ -1,0 +1,15 @@
+---
+# Projektne varijable (DO-7: group_vars nosi ono sto je zajednicko za sve role).
+# Vrijednosti koje su interne za jednu rolu zive u roles/<rola>/defaults.
+
+# --- identitet projekta ---
+domain: ruo.local
+admin_user: ruo
+
+# --- DNS (koristi ga rola dns i terraform/dns) ---
+dns_zone: "{{ domain }}"
+dns_ttl: 300
+
+# --- aplikacija (koristi rola app) ---
+app_dir: /opt/ruo/app
+frontend_port: 8080

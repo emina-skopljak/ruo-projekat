@@ -1,0 +1,23 @@
+---
+# Interna podešavanja role docker (DO-7: ono sto je interno roli ne ide u
+# group_vars, da se ne bi mijenjalo "izvana" bez razloga).
+
+docker_apt_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
+docker_apt_release_channel: stable
+docker_apt_gpg_url: https://download.docker.com/linux/ubuntu/gpg
+docker_apt_keyring: /etc/apt/keyrings/docker.asc
+
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# Konfiguracija /etc/docker/daemon.json. Ogranicenje logova je prakticno
+# (sprijeci da logovi pojedu disk VM-a od 12 GB).
+docker_daemon_config:
+  log-driver: json-file
+  log-opts:
+    max-size: "10m"
+    max-file: "3"

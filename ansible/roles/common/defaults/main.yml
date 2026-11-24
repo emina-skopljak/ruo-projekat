@@ -1,0 +1,24 @@
+---
+# Interna lista paketa za rolu common.
+# Namjerno minimalno: nista sto Docker ili aplikacija nose same.
+
+common_packages:
+  - curl
+  - ca-certificates
+  - jq
+  - htop
+  - unzip
+  - acl
+  - python3-apt
+
+# Fajl se postavlja u /etc/ssh/sshd_config.d/ i time nadjacava glavni
+# sshd_config. Isti sadrzaj postavlja i cloud-init (AO-4); Ansible ga ovdje
+# drzi pod kontrolom da se rucna izmjena na VM-u vrati na definisano stanje.
+common_ssh_hardening:
+  path: /etc/ssh/sshd_config.d/99-ruo-hardening.conf
+  lines:
+    - PasswordAuthentication no
+    - KbdInteractiveAuthentication no
+    - PubkeyAuthentication yes
+    - PermitRootLogin no
+    - UsePAM yes

@@ -1,0 +1,89 @@
+---
+# Rola docker: instalira Docker Engine iz zvanicnog repozitorija i postavlja
+# osnovnu konfiguraciju. Aplikacija se NE instalira ovdje — to je rola app.
+#
+# Zasto zvanicni Docker repo, a ne docker.io iz Ubuntua: dobija se
+# docker-compose-plugin (v2) i ista verzija kao na hostu.
+
+- name: Instaliraj zavisnosti za apt repozitorij
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+    state: present
+
+- name: Napravi direktorij za kljuceve repozitorija
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Preuzmi Docker GPG kljuc
+  ansible.builtin.get_url:
+    url: "{{ docker_apt_gpg_url }}"
+    dest: "{{ docker_apt_keyring }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Dodaj Docker apt repozitorij
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ docker_apt_arch }} signed-by={{ docker_apt_keyring }}]
+      https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} {{ docker_apt_release_channel }}
+    filename: docker
+    state: present
+
+- name: Instaliraj Docker Engine i Compose plugin
+  ansible.builtin.apt:
+    name: "{{ docker_packages }}"
+    state: present
+    update_cache: true
+  register: docker_install
+  until: docker_install is succeeded
+  retries: 5
+  delay: 15
+
+- name: Postavi konfiguraciju Docker daemona
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart docker
+
+- name: Omoguci i pokreni Docker
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Dodaj korisnika za upravljanje u docker grupu
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: docker
+    append: true
+
+- name: Provjeri da Docker odgovara
+  ansible.builtin.command: docker info
+  register: docker_info
+  changed_when: false
+  check_mode: false
+
+- name: Ispisi verziju Docker servera
+  ansible.builtin.debug:
+    msg: "{{ docker_info.stdout_lines | select('search', 'Server Version') | first | default('Server Version: nepoznato') }}"
+
+- name: Provjeri da je compose plugin dostupan
+  ansible.builtin.command: docker compose version
+  register: docker_compose_version
+  changed_when: false
+  check_mode: false
+
+- name: Ispisi verziju compose plugina
+  ansible.builtin.debug:
+    msg: "{{ docker_compose_version.stdout }}"

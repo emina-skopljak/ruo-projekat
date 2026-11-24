@@ -1,0 +1,5 @@
+---
+- name: Restart ssh (samo kad se promijeni hardening drop-in)
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
