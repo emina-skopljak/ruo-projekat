@@ -2,7 +2,7 @@
 
 **Student:** Emina Skopljak
 **Predmet:** Racunarstvo u oblaku, II ciklus, III semestar 2026/27
-**Repozitorij:** https://github.com/emina-skopljak/ruo-projekat
+
 
 Infrastruktura za troslojnu web aplikaciju, opisana iskljucivo kodom: virtuelna
 masina (Terraform + libvirt), pocetna konfiguracija (cloud-init), konfiguracija
