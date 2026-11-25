@@ -1,0 +1,24 @@
+---
+# Interna podesavanja role dns (DO-7).
+
+dns_packages:
+  - bind9
+  - bind9-utils
+  - bind9-dnsutils
+
+dns_service: named
+# Zone moraju biti u /var/lib/bind, a NE u /etc/bind: dinamicki update
+# (RFC 2136) pise journal fajlove pored zone, a AppArmor profil za named
+# dozvoljava pisanje samo u /var/lib/bind i /var/cache/bind.
+dns_zones_dir: /var/lib/bind/zones
+
+# TSIG kljuc (AO-8/AO-9) se cita sa kontrolera, izvan repozitorija.
+dns_tsig_key_name: ruo-key
+dns_tsig_key_path: "{{ lookup('env', 'HOME') }}/.ruo/tsig.key"
+dns_tsig_algorithm: hmac-sha256
+
+# Reverse zone za svaki segment. PTR zapise u njima kasnije dodaje Terraform,
+# pa i ove fajlove Ansible samo kreira (force: false), nikad ne prepisuje.
+dns_reverse_zones:
+  - name: 10.28.172.in-addr.arpa
+  - name: 20.28.172.in-addr.arpa

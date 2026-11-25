@@ -1,0 +1,21 @@
+; Upravlja Ansible — kreira se samo ako ne postoji (force: false).
+;
+; Ovaj fajl sadrzi samo "kostur" zone: SOA, NS i adresu samog DNS servera.
+; Servisni A zapisi (web, api, db) i PTR zapisi se dodaju kroz RFC 2136 iz
+; Terraform-a (AO-8). Zato se fajl poslije ne prepisuje — inace bi dinamicki
+; dodani zapisi nestali pri svakom `make config`.
+
+$TTL {{ dns_ttl }}
+$ORIGIN {{ dns_zone }}.
+
+@   IN  SOA ns.{{ dns_zone }}. hostmaster.{{ dns_zone }}. (
+        {{ dns_zone_serial }} ; serial
+        3600                  ; refresh
+        900                   ; retry
+        604800                ; expire
+        {{ dns_ttl }}         ; negative caching TTL
+)
+
+@   IN  NS  ns.{{ dns_zone }}.
+
+ns  IN  A   {{ ansible_host }}

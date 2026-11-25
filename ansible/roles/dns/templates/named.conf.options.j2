@@ -1,0 +1,43 @@
+// Upravlja Ansible (rola dns). Rucne izmjene ce biti vracene.
+//
+// BIND slusa na svim interfejsima jer ga pitaju tri razlicita svijeta:
+//   - host (WSL) preko 192.168.100.10  -> Terraform DNS provider (RFC 2136)
+//   - kontejneri preko gateway adresa Docker mreza (172.28.10.1, 172.28.20.1)
+//   - sam VM preko 127.0.0.1
+
+options {
+    directory "/var/cache/bind";
+
+    listen-on { any; };
+    listen-on-v6 { none; };
+
+    // Zona je autoritativna za nas domen; upiti za ostalo idu naprijed.
+    recursion yes;
+
+    allow-query {
+        localhost;
+        {{ vm_network_cidr }};
+        {{ app_web_subnet }};
+        {{ app_data_subnet }};
+    };
+
+    allow-recursion {
+        localhost;
+        {{ vm_network_cidr }};
+        {{ app_web_subnet }};
+        {{ app_data_subnet }};
+    };
+
+    // Nijedan sekundarni server ne postoji (vidi ADR DO-8).
+    allow-transfer { none; };
+
+    // Vanjska imena (apt, pip, docker pull) prosljedjujemo libvirt DNS-u.
+    forwarders { {{ dns_forwarder }}; };
+    forward only;
+
+    // Laboratorijska zona; validaciju spoljnih odgovora ne radimo jer
+    // forwarder nije pod nasom kontrolom.
+    dnssec-validation no;
+
+    version "ruo-dns";
+};

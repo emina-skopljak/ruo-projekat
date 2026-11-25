@@ -1,0 +1,15 @@
+; Upravlja Ansible — kreira se samo ako ne postoji (force: false).
+; Kostur reverse zone; PTR zapise dodaje Terraform (AO-8).
+
+$TTL {{ dns_ttl }}
+$ORIGIN {{ item.name }}.
+
+@   IN  SOA ns.{{ dns_zone }}. hostmaster.{{ dns_zone }}. (
+        {{ dns_zone_serial }} ; serial
+        3600                  ; refresh
+        900                   ; retry
+        604800                ; expire
+        {{ dns_ttl }}         ; negative caching TTL
+)
+
+@   IN  NS  ns.{{ dns_zone }}.

@@ -1,0 +1,27 @@
+// Upravlja Ansible (rola dns).
+//
+// TSIG kljuc postoji samo u ovom fajlu (0640, vlasnik root) i u
+// ~/.ruo/tsig.key na kontroleru. U Git nikad ne ulazi (AO-9).
+//
+// allow-update sa kljucem znaci: taj kljuc moze mijenjati ISKLJUCIVO zone
+// navedene ispod, nista drugo na serveru (AO-8).
+
+key "{{ dns_tsig_key_name }}" {
+    algorithm {{ dns_tsig_algorithm }};
+    secret "{{ dns_tsig_secret }}";
+};
+
+zone "{{ dns_zone }}" {
+    type primary;
+    file "{{ dns_zones_dir }}/db.{{ dns_zone }}";
+    allow-update { key "{{ dns_tsig_key_name }}"; };
+};
+
+{% for rev in dns_reverse_zones %}
+zone "{{ rev.name }}" {
+    type primary;
+    file "{{ dns_zones_dir }}/db.{{ rev.name }}";
+    allow-update { key "{{ dns_tsig_key_name }}"; };
+};
+
+{% endfor %}

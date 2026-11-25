@@ -1,0 +1,129 @@
+---
+# Rola dns: autoritativni BIND 9 za zonu projekta (AO-7, AO-8).
+#
+# Podjela odgovornosti:
+#   Ansible  -> instalira BIND, TSIG kljuc, SOA/NS "kostur" zona
+#   Terraform -> servisne A i PTR zapise kroz RFC 2136 (terraform/dns)
+#
+# Zato se zone kreiraju sa force: false — nikad se ne prepisuju, da dinamicki
+# dodani zapisi ne bi nestali.
+
+- name: Instaliraj BIND
+  ansible.builtin.apt:
+    name: "{{ dns_packages }}"
+    state: present
+    update_cache: true
+  register: dns_install
+  until: dns_install is succeeded
+  retries: 3
+  delay: 10
+
+- name: Napravi direktorij za zone
+  ansible.builtin.file:
+    path: "{{ dns_zones_dir }}"
+    state: directory
+    owner: bind
+    group: bind
+    mode: "0755"
+
+- name: Ucitaj TSIG secret sa kontrolera (AO-9)
+  ansible.builtin.set_fact:
+    dns_tsig_secret: "{{ lookup('ansible.builtin.file', dns_tsig_key_path) | trim }}"
+  no_log: true
+
+- name: Postavi named.conf.options
+  ansible.builtin.template:
+    src: named.conf.options.j2
+    dest: /etc/bind/named.conf.options
+    owner: root
+    group: bind
+    mode: "0644"
+  notify: restart named
+
+- name: Postavi named.conf.local (zone i TSIG)
+  ansible.builtin.template:
+    src: named.conf.local.j2
+    dest: /etc/bind/named.conf.local
+    owner: root
+    group: bind
+    mode: "0640"
+  no_log: true
+  notify: restart named
+
+- name: Kreiraj forward zonu (samo ako ne postoji)
+  ansible.builtin.template:
+    src: db.zone.j2
+    dest: "{{ dns_zones_dir }}/db.{{ dns_zone }}"
+    owner: bind
+    group: bind
+    mode: "0644"
+    force: false
+  notify: restart named
+
+- name: Kreiraj reverse zone (samo ako ne postoje)
+  ansible.builtin.template:
+    src: db.reverse.j2
+    dest: "{{ dns_zones_dir }}/db.{{ item.name }}"
+    owner: bind
+    group: bind
+    mode: "0644"
+    force: false
+  loop: "{{ dns_reverse_zones }}"
+  notify: restart named
+
+# --- validacija prije nego se servis dotakne ---
+
+- name: Provjeri sintaksu named konfiguracije
+  ansible.builtin.command: named-checkconf
+  changed_when: false
+  check_mode: false
+
+- name: Provjeri forward zonu
+  ansible.builtin.command: "named-checkzone {{ dns_zone }} {{ dns_zones_dir }}/db.{{ dns_zone }}"
+  changed_when: false
+  check_mode: false
+  register: dns_check_forward
+
+- name: Provjeri reverse zone
+  ansible.builtin.command: "named-checkzone {{ item.name }} {{ dns_zones_dir }}/db.{{ item.name }}"
+  loop: "{{ dns_reverse_zones }}"
+  changed_when: false
+  check_mode: false
+  register: dns_check_reverse
+
+- name: Omoguci i pokreni BIND
+  ansible.builtin.systemd:
+    name: "{{ dns_service }}"
+    state: started
+    enabled: true
+
+# --- VM koristi vlastitu zonu ---
+# Primarni resolver je nas BIND, a libvirt DNS ostaje kao rezerva da VM ne
+# ostane bez imena ako BIND privremeno padne.
+
+- name: Postavi resolver VM-a na vlastiti BIND
+  ansible.builtin.copy:
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # upravlja Ansible (rola dns)
+      search {{ dns_zone }}
+      nameserver 127.0.0.1
+      nameserver {{ dns_forwarder }}
+
+- name: Provjeri da zona odgovara lokalno
+  ansible.builtin.command: "dig +short SOA {{ dns_zone }} @127.0.0.1"
+  register: dns_soa
+  changed_when: false
+  check_mode: false
+  retries: 5
+  delay: 3
+
+- name: Zona mora vratiti SOA zapis
+  ansible.builtin.assert:
+    that:
+      - dns_soa.stdout | length > 0
+    fail_msg: "BIND ne odgovara za zonu {{ dns_zone }} (provjeri named-checkconf i journalctl -u named)"
+    success_msg: "BIND odgovara: {{ dns_soa.stdout }}"

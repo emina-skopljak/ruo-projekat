@@ -13,3 +13,8 @@ dns_ttl: 300
 # --- aplikacija (koristi rola app) ---
 app_dir: /opt/ruo/app
 frontend_port: 8080
+vm_network_cidr: "192.168.100.0/24"
+dns_zone_serial: 2026112401
+app_web_subnet: "172.28.10.0/24"
+app_data_subnet: "172.28.20.0/24"
+dns_forwarder: "192.168.100.1"

@@ -1,5 +1,5 @@
 ---
-- name: restart docker
+- name: Restart docker (samo kad se promijeni daemon.json)
   ansible.builtin.service:
     name: docker
     state: restarted

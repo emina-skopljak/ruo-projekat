@@ -42,10 +42,6 @@
     name: "{{ docker_packages }}"
     state: present
     update_cache: true
-  register: docker_install
-  until: docker_install is succeeded
-  retries: 5
-  delay: 15
 
 - name: Postavi konfiguraciju Docker daemona
   ansible.builtin.template:
