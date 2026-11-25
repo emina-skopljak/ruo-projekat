@@ -162,3 +162,14 @@ idempotentan i ne prepisuje postojeće. Vidi ADR DO-9.
 - `make destroy` uklanja VM, mrežu i DNS zapise; pool `default` (u koji provider
   smješta cloud-init seed) može ostati definisan — to je nuspojava libvirt
   providera, opisana u ADR-u DO-2.
+
+**AO-1 — troslojnost.** Tri servisa, svaki u svom kontejneru; tok zahtjeva je
+isključivo frontend -> backend -> baza.
+
+
+**AO-2 — sve kao kod.** Okruženje se podiže i uklanja isključivo naredbama, bez
+ručnih koraka:
+
+
+**AO-9 — tajne.** U Gitu nema ni jedne tajne; generišu se pri pokretanju.
+
