@@ -1,0 +1,16 @@
+# Primjer lokalnih izmjena za modul DNS.
+# TSIG secret se NE stavlja ovdje (to bi bila tajna u fajlu). Postavlja se
+# kroz okruzenje:
+#
+#   export TF_VAR_tsig_secret="$(cat ~/.ruo/tsig.key)"
+#   terraform apply
+#
+# Adresa DNS servera dolazi iz modula vm (Makefile je prosljedjuje):
+#
+#   terraform apply -var="dns_server=$(terraform -chdir=../vm output -raw vm_ip)"
+
+# zone         = "ruo.local."
+# ttl          = 300
+# frontend_ip  = "172.28.10.10"
+# backend_ip   = "172.28.10.20"
+# db_ip        = "172.28.20.30"
