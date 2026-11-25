@@ -46,7 +46,11 @@ if [ ! -f "$SECRETS_DIR/tsig.key" ]; then
   created=1
 fi
 
-chmod 600 "$SECRETS_DIR"/* "$SECRETS_DIR"/ssh/* 2>/dev/null || true
+# Dozvole: direktoriji 700 (samo vlasnik ulazi), fajlovi 600 (samo vlasnik cita).
+# NAMJERNO ne koristimo `chmod 600 "$SECRETS_DIR"/*` jer bi to skinulo x-bit
+# sa poddirektorija ssh/ i time onemogucilo citanje kljuca unutra.
+find "$SECRETS_DIR" -type d -exec chmod 700 {} + 2>/dev/null || true
+find "$SECRETS_DIR" -type f -exec chmod 600 {} + 2>/dev/null || true
 
 if [ "$created" -eq 0 ]; then
   echo "Sve tajne vec postoje u $SECRETS_DIR — nista nije mijenjano."

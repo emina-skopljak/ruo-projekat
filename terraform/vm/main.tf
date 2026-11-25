@@ -23,14 +23,21 @@ locals {
 resource "libvirt_pool" "ruo" {
   name = "ruo-pool"
   type = "dir"
+
   target {
     path = var.pool_path
   }
 }
 
+# Provider dmacvicar/libvirt smjesta cloud-init seed ISO u pool cije je ime
+# hardkodirano na "default" (resource libvirt_cloudinit_disk nema argument
+# za pool). Svjeza libvirt instalacija taj pool nema, pa ga ovdje
+# eksplicitno definisemo — i to kroz kod, a ne rucno (AO-2).
+# Ako pool vec postoji na hostu, ovaj blok se brise i radi `terraform import`.
 resource "libvirt_pool" "default" {
   name = "default"
   type = "dir"
+
   target {
     path = "/var/lib/libvirt/images"
   }
@@ -116,11 +123,17 @@ resource "local_file" "network_config" {
 }
 
 resource "libvirt_cloudinit_disk" "seed" {
-  name           = "${var.vm_name}-seed.iso"
+  name = "${var.vm_name}-seed.iso"
+
+  # PAZNJA: u provideru 0.8.x ovi argumenti su SADRZAJ, ne putanja do fajla.
+  # Ako se proslijedi putanja, u ISO se upise tekst putanje i cloud-init
+  # ignorise konfiguraciju (VM zavrsi na DHCP-u sa default hostname-om).
   user_data      = local_file.user_data.content
   meta_data      = local_file.meta_data.content
   network_config = local_file.network_config.content
-  depends_on     = [libvirt_pool.default]
+
+  # Bez ovoga Terraform moze krenuti u izradu seed-a prije nego pool postoji.
+  depends_on = [libvirt_pool.default]
 }
 
 # --- 4. domena (VM) --------------------------------------------------------
@@ -133,6 +146,10 @@ resource "libvirt_domain" "vm" {
   autostart = true
   cloudinit = libvirt_cloudinit_disk.seed.id
 
+  # host-model umjesto host-passthrough: passthrough trazi da hipervizor
+  # proslijedi host CPU doslovno, sto pod nested virtualizacijom (WSL2) nije
+  # podrzano. host-model daje najblizu podrzanu konfiguraciju i prenosiv je
+  # izmedju racunara.
   cpu {
     mode = "host-model"
   }
@@ -158,8 +175,12 @@ resource "libvirt_domain" "vm" {
     autoport    = true
   }
 
-  # host-model se u zivom XML-u normalizuje u mode='custom'; to nije drift
-  # nego normalizacija hipervizora, pa ignorisemo samo taj atribut.
+  # host-model se u zivom XML-u normalizuje u mode='custom' (libvirt upise
+  # konkretan model CPU-a). To nije drift nego normalizacija hipervizora, pa
+  # je ovo jedini atribut koji svjesno ignorišemo — inace bi `terraform plan`
+  # uvijek prijavljivao 1 promjenu i AO-3 ("plan nakon apply = 0") ne bi
+  # prolazio. Sve sto je stvarna konfiguracija (RAM, vCPU, diskovi, mreza)
+  # i dalje se normalno poredi.
   lifecycle {
     ignore_changes = [cpu]
   }

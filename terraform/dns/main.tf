@@ -24,17 +24,17 @@ locals {
   ptrs = {
     web = {
       zone   = var.reverse_web_zone
-      name   = "${split(".", var.frontend_ip)[3]}."
+      name   = split(".", var.frontend_ip)[3]
       target = "web.${var.zone}"
     }
     api = {
       zone   = var.reverse_web_zone
-      name   = "${split(".", var.backend_ip)[3]}."
+      name   = split(".", var.backend_ip)[3]
       target = "api.${var.zone}"
     }
     db = {
       zone   = var.reverse_data_zone
-      name   = "${split(".", var.db_ip)[3]}."
+      name   = split(".", var.db_ip)[3]
       target = "db.${var.zone}"
     }
   }
@@ -57,7 +57,7 @@ resource "dns_ptr_record" "service" {
   for_each = local.ptrs
 
   zone = each.value.zone
-  name = trimsuffix(each.value.name, ".")
+  name = each.value.name
   ptr  = each.value.target
   ttl  = var.ttl
 }

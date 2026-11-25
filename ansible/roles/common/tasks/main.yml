@@ -2,6 +2,108 @@
 # Rola common: osnovno stanje sistema prije i nezavisno od Dockera.
 # Svaki zadatak mora biti idempotentan (AO-5).
 
+# --- 1. Ukloni izvor nedeterminizma: automatske nadogradnje ---
+# Ubuntu cloud slika pri prvom bootu pokrece unattended-upgrades, koji drzi
+# dpkg lock i po nekoliko minuta. Za laboratorijsku VM to je samo izvor
+# sporosti i nedeterministicnosti: isti `make all` ne bi trajao isto svaki
+# put, a AO-2 trazi ponovljiv ciklus. Nadogradnje se zato primjenjuju
+# svjesno, kroz `make config` (apt update/upgrade po potrebi).
+
+- name: Zaustavi servise automatskih nadogradnji
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - unattended-upgrades.service
+    - apt-daily.service
+    - apt-daily-upgrade.service
+  failed_when: false
+
+- name: Onemoguci apt timere (mask)
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+    masked: true
+  loop:
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+
+- name: Provjeri da vise nema procesa koji drzi dpkg lock
+  ansible.builtin.shell: |
+    set -euo pipefail
+    for _ in $(seq 1 60); do
+      if ! pgrep -x unattended-upgr >/dev/null 2>&1 \
+         && ! pgrep -x apt-get >/dev/null 2>&1 \
+         && ! pgrep -x dpkg >/dev/null 2>&1; then
+        exit 0
+      fi
+      sleep 2
+    done
+    echo "dpkg lock je jos zauzet nakon 120s" >&2
+    exit 1
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+# --- 2. Swap: VM ima ~2 GB RAM-a i nema swap ---
+# Bez swap-a svaki build ili paralelni healthcheck izazove memorijski pritisak,
+# load average skoci i dockerd/containerd pocnu da blokiraju.
+
+- name: Provjeri aktivne swap uredjaje
+  ansible.builtin.command: swapon --show=NAME --noheadings
+  register: common_swap_active
+  changed_when: false
+  check_mode: false
+
+- name: Napravi swap fajl
+  ansible.builtin.command:
+    cmd: "fallocate -l {{ common_swap_size }} {{ common_swap_file }}"
+    creates: "{{ common_swap_file }}"
+  register: common_swap_created
+
+- name: Postavi dozvole na swap fajl
+  ansible.builtin.file:
+    path: "{{ common_swap_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Formatiraj swap fajl
+  ansible.builtin.command:
+    cmd: "mkswap {{ common_swap_file }}"
+  when: common_swap_created.changed
+  changed_when: true
+
+- name: Ukljuci swap
+  ansible.builtin.command:
+    cmd: "swapon {{ common_swap_file }}"
+  when: common_swap_file not in common_swap_active.stdout
+  changed_when: true
+
+- name: Trajno zapisi swap u fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    line: "{{ common_swap_file }} none swap sw 0 0"
+    state: present
+
+- name: Postavi swappiness
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-ruo.conf
+    mode: "0644"
+    content: |
+      # Rola common: swap je rezerva, ne radni prostor
+      vm.swappiness = {{ common_swappiness }}
+  register: common_sysctl
+
+- name: Primeni sysctl
+  ansible.builtin.command: sysctl --system
+  when: common_sysctl.changed
+  changed_when: true
+
+# --- 3. Osnovni paketi ---
+
 - name: Azuriraj apt kes (keširaj 1h da ponovno izvrsavanje ne mijenja nista)
   ansible.builtin.apt:
     update_cache: true

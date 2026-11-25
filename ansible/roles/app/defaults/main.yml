@@ -1,0 +1,17 @@
+---
+# Interna podesavanja role app (DO-7).
+
+# Lokacija aplikacije na VM-u.
+app_dir: /opt/ruo/app
+
+# Tajne se citaju sa kontrolera, izvan repozitorija (AO-9).
+app_db_password_path: "{{ lookup('env', 'HOME') }}/.ruo/db-password"
+
+# Imena iz zone projekta (AO-7) — nikad IP adrese.
+app_db_host: "db"
+app_api_host: "api.{{ dns_zone }}"
+app_backend_url: "http://backend:8000"
+
+# Gateway adrese Docker mreza na VM-u; na njima BIND slusa.
+app_web_dns: "172.28.10.1"
+app_data_dns: "172.28.20.1"

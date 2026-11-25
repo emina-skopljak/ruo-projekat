@@ -1,0 +1,89 @@
+---
+# Rola app: isporuka i pokretanje aplikacije na VM-u (AO-1, AO-6, AO-10).
+#
+# Namjerno bez community.docker kolekcije: `docker compose` se poziva kao
+# komanda, a promjena se prepoznaje po izlazu ("Created"/"Recreated"/"Started").
+# Time playbook ostaje idempotentan bez dodatne zavisnosti.
+
+- name: Napravi direktorij aplikacije
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: "0755"
+
+- name: Kopiraj kod aplikacije na VM
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../app/{{ item }}"
+    dest: "{{ app_dir }}/"
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: "0644"
+    directory_mode: "0755"
+  loop:
+    - frontend
+    - backend
+    - db
+
+- name: Kopiraj compose.yaml
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../app/compose.yaml"
+    dest: "{{ app_dir }}/compose.yaml"
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: "0644"
+
+- name: Ucitaj lozinku baze sa kontrolera (AO-9)
+  ansible.builtin.set_fact:
+    app_db_password: "{{ lookup('ansible.builtin.file', app_db_password_path) }}"
+  no_log: true
+
+- name: Generisi .env iz group_vars i tajni
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ app_dir }}/.env"
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: "0600"
+  no_log: true
+
+- name: Podigni aplikaciju (docker compose up)
+  ansible.builtin.command:
+    cmd: docker compose up -d --build --remove-orphans
+    chdir: "{{ app_dir }}"
+  register: app_compose_up
+  changed_when: >-
+    ('Created' in app_compose_up.stdout)
+    or ('Recreated' in app_compose_up.stdout)
+    or ('Started' in app_compose_up.stdout)
+
+- name: Sacekaj da frontend odgovori (dokaz da aplikacija stvarno radi)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ frontend_port }}/healthz"
+    status_code: 200
+  register: app_health
+  retries: 30
+  delay: 5
+  until: app_health.status == 200
+
+- name: Provjeri da backend cita iz baze preko DNS imena
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ frontend_port }}/api/notes"
+    return_content: true
+    status_code: 200
+  register: app_notes
+  retries: 10
+  delay: 3
+  until: app_notes.status == 200
+
+- name: Ispisi stanje kontejnera
+  ansible.builtin.command:
+    cmd: docker compose ps
+    chdir: "{{ app_dir }}"
+  register: app_ps
+  changed_when: false
+
+- name: Kontejneri
+  ansible.builtin.debug:
+    msg: "{{ app_ps.stdout_lines }}"

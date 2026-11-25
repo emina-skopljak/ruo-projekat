@@ -15,6 +15,10 @@ zone "{{ dns_zone }}" {
     type primary;
     file "{{ dns_zones_dir }}/db.{{ dns_zone }}";
     allow-update { key "{{ dns_tsig_key_name }}"; };
+
+    // Nema sekundarnog servera, ali automatizacija (Terraform provider)
+    // cita stanje zone transferom — dozvoljeno samo potpisanim zahtjevima.
+    allow-transfer { key "{{ dns_tsig_key_name }}"; };
 };
 
 {% for rev in dns_reverse_zones %}
@@ -22,6 +26,7 @@ zone "{{ rev.name }}" {
     type primary;
     file "{{ dns_zones_dir }}/db.{{ rev.name }}";
     allow-update { key "{{ dns_tsig_key_name }}"; };
+    allow-transfer { key "{{ dns_tsig_key_name }}"; };
 };
 
 {% endfor %}

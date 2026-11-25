@@ -42,6 +42,12 @@
     name: "{{ docker_packages }}"
     state: present
     update_cache: true
+  register: docker_install
+  # dpkg lock moze nakratko biti zauzet (npr. zaostali apt proces). Umjesto
+  # pada, pokusaj ponovo — ovo je i prakticna zastita za odbranu.
+  until: docker_install is succeeded
+  retries: 5
+  delay: 15
 
 - name: Postavi konfiguraciju Docker daemona
   ansible.builtin.template:

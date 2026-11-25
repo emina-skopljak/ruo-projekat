@@ -6,15 +6,29 @@
 domain: ruo.local
 admin_user: ruo
 
-# --- DNS (koristi ga rola dns i terraform/dns) ---
+# --- DNS (role dns + terraform/dns) ---
 dns_zone: "{{ domain }}"
 dns_ttl: 300
+# SOA serial se mijenja samo kad se mijenja "kostur" zone. Dinamicki dodani
+# zapisi (Terraform) sami podizu serial preko RFC 2136.
+dns_zone_serial: 2026112401
+dns_forwarder: 192.168.100.1
 
-# --- aplikacija (koristi rola app) ---
+# --- plan adresiranja (DO-3) ---
+vm_network_cidr: 192.168.100.0/24
+
+app_web_subnet: 172.28.10.0/24
+app_data_subnet: 172.28.20.0/24
+app_web_gateway: 172.28.10.1
+app_data_gateway: 172.28.20.1
+
+frontend_ip: 172.28.10.10
+backend1_ip: 172.28.10.20
+backend2_ip: 172.28.10.21
+backend1_data_ip: 172.28.20.20
+backend2_data_ip: 172.28.20.21
+db_ip: 172.28.20.30
+
+# --- aplikacija (rola app) ---
 app_dir: /opt/ruo/app
 frontend_port: 8080
-vm_network_cidr: "192.168.100.0/24"
-dns_zone_serial: 2026112401
-app_web_subnet: "172.28.10.0/24"
-app_data_subnet: "172.28.20.0/24"
-dns_forwarder: "192.168.100.1"

@@ -31,3 +31,6 @@
 
     - role: dns
       tags: [dns]
+
+    - role: app
+      tags: [app]

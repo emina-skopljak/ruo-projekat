@@ -11,6 +11,12 @@ common_packages:
   - acl
   - python3-apt
 
+# VM ima ~2 GB RAM-a i nema swap. Bez swap-a memorijski pritisak digne load
+# average i blokira dockerd/healthcheckove. 2 GB swap fajla je dovoljno.
+common_swap_file: /swapfile
+common_swap_size: 2G
+common_swappiness: 10
+
 # Fajl se postavlja u /etc/ssh/sshd_config.d/ i time nadjacava glavni
 # sshd_config. Isti sadrzaj postavlja i cloud-init (AO-4); Ansible ga ovdje
 # drzi pod kontrolom da se rucna izmjena na VM-u vrati na definisano stanje.

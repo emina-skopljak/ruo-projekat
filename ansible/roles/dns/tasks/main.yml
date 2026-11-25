@@ -71,6 +71,9 @@
   loop: "{{ dns_reverse_zones }}"
   notify: restart named
 
+- name: Primeni konfiguraciju BIND-a prije provjera
+  ansible.builtin.meta: flush_handlers
+
 # --- validacija prije nego se servis dotakne ---
 
 - name: Provjeri sintaksu named konfiguracije

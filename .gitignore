@@ -22,6 +22,8 @@ vault-pass*
 !*.tfvars.example
 # generisani cloud-init fajlovi (nastaju iz cloud-init/*.yaml sablona)
 terraform/vm/.cloudinit-*
+*.tfplan
+tfplan
 crash.log
 crash.*.log
 
